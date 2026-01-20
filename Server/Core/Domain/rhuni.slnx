@@ -2,6 +2,11 @@
   <Folder Name="/Client/" />
   <Folder Name="/Server/" />
   <Folder Name="/Server/Core/">
+    <Project Path="../Application/Application.csproj" />
+    <Project Path="../Domain.Common/Domain.Common.csproj" />
     <Project Path="Domain/Domain.csproj" />
+  </Folder>
+  <Folder Name="/Server/Infra/">
+    <Project Path="../../Infra/Infrastructure/Infrastructure.csproj" />
   </Folder>
 </Solution>

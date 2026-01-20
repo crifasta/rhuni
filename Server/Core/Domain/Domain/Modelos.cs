@@ -1,7 +1,12 @@
 ﻿namespace Domain;
 
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using System.Reflection.Emit;
+
 using System.Collections.Generic;
+using Domain.Common.Contracts;
+
 // -----------------------------------------------------------------------------
 // RRHH Universal - Modelo EF Core (Entidades + DbContext)
 // Target: .NET 8/9/10 + EF Core 8/9
@@ -11,63 +16,13 @@ using System.Collections.Generic;
 // - Unique constraints críticos definidos en Fluent API
 // -----------------------------------------------------------------------------
 
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Reflection.Emit;
 
-namespace RrhhUniversal.Persistence.Model;
-
-// -----------------------------------------------------------------------------
-// Infra: base contracts
-// -----------------------------------------------------------------------------
-public interface ITenantEntity
-{
-    Guid TenantId { get; set; }
-}
-
-public interface IAuditableEntity
-{
-    DateTime CreatedAtUtc { get; set; }
-    Guid? CreatedByUserGlobalId { get; set; }
-
-    DateTime? UpdatedAtUtc { get; set; }
-    Guid? UpdatedByUserGlobalId { get; set; }
-}
-
-public interface ISoftDelete
-{
-    bool IsDeleted { get; set; }
-    DateTime? DeletedAtUtc { get; set; }
-    Guid? DeletedByUserGlobalId { get; set; }
-}
-
-public abstract class EntityBase<TKey> : IAuditableEntity
-{
-    [Key]
-    public TKey Id { get; set; } = default!;
-
-    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-    public Guid? CreatedByUserGlobalId { get; set; }
-
-    public DateTime? UpdatedAtUtc { get; set; }
-    public Guid? UpdatedByUserGlobalId { get; set; }
-}
-
-public abstract class TenantEntityBase<TKey> : EntityBase<TKey>, ITenantEntity
-{
-    public Guid TenantId { get; set; }
-}
 
 
 // -----------------------------------------------------------------------------
-// Enums (pueden migrarse a tablas si preferís parametrización)
+// Enums (pueden migrarse a tablas )
 // -----------------------------------------------------------------------------
-public enum EstadoRegistro
-{
-    Activo = 1,
-    Bloqueado = 2,
-    Eliminado = 3
-}
+
 
 public enum RolUsuarioTenant
 {
@@ -144,7 +99,7 @@ public enum MetodoFirma
 // -----------------------------------------------------------------------------
 // Catálogos base multi-país (mínimos; podés expandir)
 // -----------------------------------------------------------------------------
-public sealed class Pais : EntityBase<short>
+public sealed class Pais : BaseEntity<short>
 {
     [Required, StringLength(2)]
     public string Iso2 { get; set; } = null!;
@@ -153,7 +108,7 @@ public sealed class Pais : EntityBase<short>
     public string Nombre { get; set; } = null!;
 }
 
-public sealed class Moneda : EntityBase<short>
+public sealed class Moneda : BaseEntity<short>
 {
     [Required, StringLength(3)]
     public string Iso3 { get; set; } = null!;
@@ -165,7 +120,7 @@ public sealed class Moneda : EntityBase<short>
 // -----------------------------------------------------------------------------
 // Identity Core
 // -----------------------------------------------------------------------------
-public sealed class UsuarioGlobal : EntityBase<Guid>
+public sealed class UsuarioGlobal : BaseEntity<Guid>
 {
     // Identidad global por país + tipo + número
     [Required, StringLength(30)]
@@ -190,7 +145,7 @@ public sealed class UsuarioGlobal : EntityBase<Guid>
     public List<Legajo> Legajos { get; set; } = new();
 }
 
-public sealed class Tenant : EntityBase<Guid>
+public sealed class Tenant : BaseEntity<Guid>
 {
     [Required, StringLength(200)]
     public string RazonSocial { get; set; } = null!;
@@ -615,122 +570,4 @@ public sealed class AuditoriaEvento : TenantEntityBase<long>
     public DateTime FechaUtc { get; set; } = DateTime.UtcNow;
 
     public string? DatosJson { get; set; } // snapshot/diff contextual
-}
-
-// -----------------------------------------------------------------------------
-// DbContext
-// -----------------------------------------------------------------------------
-public sealed class RrhhDbContext : DbContext
-{
-    public RrhhDbContext(DbContextOptions<RrhhDbContext> options) : base(options) { }
-
-    // Catálogos
-    public DbSet<Pais> Paises => Set<Pais>();
-    public DbSet<Moneda> Monedas => Set<Moneda>();
-
-    // Identity
-    public DbSet<UsuarioGlobal> UsuariosGlobales => Set<UsuarioGlobal>();
-    public DbSet<Tenant> Tenants => Set<Tenant>();
-    public DbSet<UsuarioTenant> UsuariosTenant => Set<UsuarioTenant>();
-
-    // RRHH
-    public DbSet<Legajo> Legajos => Set<Legajo>();
-    public DbSet<DatosPersonalesLegajo> DatosPersonalesLegajos => Set<DatosPersonalesLegajo>();
-
-    public DbSet<CampoDinamicoDef> CamposDinamicosDef => Set<CampoDinamicoDef>();
-    public DbSet<CampoDinamicoValor> CamposDinamicosValor => Set<CampoDinamicoValor>();
-
-    public DbSet<Area> Areas => Set<Area>();
-    public DbSet<Puesto> Puestos => Set<Puesto>();
-    public DbSet<LegajoPuesto> LegajoPuestos => Set<LegajoPuesto>();
-
-    public DbSet<Convenio> Convenios => Set<Convenio>();
-    public DbSet<Categoria> Categorias => Set<Categoria>();
-    public DbSet<ContratoLaboral> ContratosLaborales => Set<ContratoLaboral>();
-
-    public DbSet<RegistroHorario> RegistrosHorario => Set<RegistroHorario>();
-    public DbSet<TipoAusencia> TiposAusencia => Set<TipoAusencia>();
-    public DbSet<Ausencia> Ausencias => Set<Ausencia>();
-
-    public DbSet<Liquidacion> Liquidaciones => Set<Liquidacion>();
-    public DbSet<LiquidacionLegajo> LiquidacionesLegajo => Set<LiquidacionLegajo>();
-    public DbSet<Concepto> Conceptos => Set<Concepto>();
-    public DbSet<LiquidacionConcepto> LiquidacionesConcepto => Set<LiquidacionConcepto>();
-
-    public DbSet<SolicitudMedica> SolicitudesMedicas => Set<SolicitudMedica>();
-    public DbSet<ExamenMedico> ExamenesMedicos => Set<ExamenMedico>();
-
-    public DbSet<Documento> Documentos => Set<Documento>();
-    public DbSet<FirmaDocumento> FirmasDocumento => Set<FirmaDocumento>();
-
-    public DbSet<AuditoriaEvento> AuditoriaEventos => Set<AuditoriaEvento>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-
-        // -----------------------------
-        // Unique / indexes críticos
-        // -----------------------------
-        modelBuilder.Entity<UsuarioGlobal>()
-            .HasIndex(x => new { x.PaisId, x.TipoIdentificacion, x.NumeroIdentificacion })
-            .IsUnique();
-
-        modelBuilder.Entity<Tenant>()
-            .HasIndex(x => new { x.PaisId, x.IdentificacionFiscal })
-            .IsUnique();
-
-        modelBuilder.Entity<UsuarioTenant>()
-            .HasIndex(x => new { x.TenantId, x.UsuarioGlobalId })
-            .IsUnique();
-
-        modelBuilder.Entity<Legajo>()
-            .HasIndex(x => new { x.TenantId, x.NumeroLegajo })
-            .IsUnique();
-
-        // Campos dinámicos: nombre único por tenant
-        modelBuilder.Entity<CampoDinamicoDef>()
-            .HasIndex(x => new { x.TenantId, x.Nombre })
-            .IsUnique();
-
-        // Concepto: código único por tenant (y opcionalmente por país si aplica)
-        modelBuilder.Entity<Concepto>()
-            .HasIndex(x => new { x.TenantId, x.Codigo })
-            .IsUnique();
-
-        // Liquidación: periodo+tipo único por tenant (si lo querés así)
-        modelBuilder.Entity<Liquidacion>()
-            .HasIndex(x => new { x.TenantId, x.Periodo, x.Tipo })
-            .IsUnique();
-
-        // -----------------------------
-        // Relaciones 1:1 Legajo <-> DatosPersonales (shared PK)
-        // -----------------------------
-        modelBuilder.Entity<Legajo>()
-            .HasOne(x => x.DatosPersonales)
-            .WithOne(x => x.Legajo)
-            .HasForeignKey<DatosPersonalesLegajo>(x => x.Id)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // -----------------------------
-        // Area self reference
-        // -----------------------------
-        modelBuilder.Entity<Area>()
-            .HasOne(x => x.AreaPadre)
-            .WithMany(x => x.Hijos)
-            .HasForeignKey(x => x.AreaPadreId)
-            .OnDelete(DeleteBehavior.Restrict);
-
-        // -----------------------------
-        // Soft delete global filter (Documentos)
-        // (Repetible para otras entidades si aplica)
-        // -----------------------------
-        modelBuilder.Entity<Documento>()
-            .HasQueryFilter(x => !x.IsDeleted);
-
-        // -----------------------------
-        // DateOnly/TimeOnly mapping (EF Core 8+ ok nativo)
-        // Si tu provider requiere, agregar conversiones aquí.
-        // -----------------------------
-    }
 }
